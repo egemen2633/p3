@@ -163,6 +163,7 @@ void full_parse(Token *left) {
 	Token *one = container_of(left->link.next, Token, link);
 	Token *two = container_of(one->link.next, Token, link);
 	if (!cmp_Str(one->rule->name, cStr("node"))) {
+	label_0:
 		if (!cmp_Str(two->rule->name, cStr("node"))) {
 			one->data.generic._0 = new_bin_Node(one->data.generic._0, two->data.generic._0);
 			Free(pop_DL(&two->link));
@@ -170,15 +171,32 @@ void full_parse(Token *left) {
 		}
 
 		if (!cmp_Str(two->rule->name, cStr("char"))) {
-			if (two->data.bytes[0] == ')') {
-				Free(pop_DL(&left->link));
-				Free(pop_DL(&two->link));
-				return;
-			}
-			if (two->data.bytes[0] == '(') {
-				full_parse(two);
-				return full_parse(left);
-			}	
+// (|node|char
+if (two->data.bytes[0] == ')') {
+	Free(pop_DL(&left->link));
+	Free(pop_DL(&two->link));
+	return;
+}
+if (two->data.bytes[0] == '(') {
+	full_parse(two);
+	two = container_of(one->link.next, Token, link);
+	goto label_0;
+}
+if (two->data.bytes[0] == ',') {
+	Token *three = container_of(two->link.next, Token, link);
+	if (!cmp_Str(three->rule->name, cStr("char")) && three->data.bytes[0] == '(') {
+		full_parse(three);
+		three = container_of(two->link.next, Token, link);
+	}
+	if (!cmp_Str(three->rule->name, cStr("node"))) {
+		Node *new = new_bin_Node(one->data.generic._0, three->data.generic._0);
+		new->flags |= PAIR_BIN_FLAG;
+		one->data.generic._0 = new;
+		Free(pop_DL(&two->link));
+		Free(pop_DL(&three->link));
+		return full_parse(left);
+	}
+}
 		}
 	}
 

@@ -11,7 +11,7 @@ void print_tokens(Token *org) {
 	putchar('\n');
 }
 
-// clang 3/test.c -o 3/test 3/0.c -D_GNU_SOURCE
+// clang test.c -o test 0.c -D_GNU_SOURCE
 int main() {
 	RuleLexer str_rule = {
 		.match = &match_str,
@@ -43,7 +43,7 @@ int main() {
 	org.link.next = &org.link;
 	org.link.prev = &org.link;
 
-	FILE *fp = fopen("3/test.txt", "rb");
+	FILE *fp = fopen("test.txt", "rb");
 
 	RuleLexer *rule = &space_rule;
 	pull: {
