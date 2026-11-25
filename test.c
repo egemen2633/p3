@@ -113,7 +113,7 @@ void rest_of_main(Token *org) {
 
 	from_int_rule.link.next = &def_rules.link;
 	def_rules.link.next = NULL;
-
+	
 {
 	Token *token = org;
 	while ((token = container_of(token->link.next, Token, link)) != org) {
@@ -193,7 +193,6 @@ int main() {
 	// print_tokens(&org);
 
 	convert_atoms(&org);
-	find_names(&org);
 	// find_vars(&org);
 	// print_tokens(&org);
 	// putchar('\n');

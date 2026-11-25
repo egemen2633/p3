@@ -1,9 +1,5 @@
 #include "0h.c"
 #include "2.c"
-#include <assert.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 
 typedef struct RuleEval RuleEval;
 typedef bool MatchEval(Node *, RuleEval *);
@@ -30,8 +26,7 @@ Node false_node = {
 };
 */
 
-U4 is_atom_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG && !(x->flags & NAME_FLAG_NODE); }
-U4 is_name_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG && (x->flags & NAME_FLAG_NODE); }
+U4 is_atom_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG; }
 U4 is_ind_Node(Node *x)  { return (x->flags & TYPE_FLAG_NODE) == IND_TYPE_FLAG; }
 U4 is_app_Node(Node *x)  { return (x->flags & TYPE_FLAG_NODE) == (APP_BIN_FLAG | BIN_TYPE_FLAG); }
 U4 is_pair_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == (PAIR_BIN_FLAG | BIN_TYPE_FLAG); }
@@ -239,7 +234,7 @@ bool match_int_to_str(Node *node, RuleEval *rule) {
 
 
 bool match_defs(Node *node, RuleEval *rule) {
-   if (!is_name_Node(node)) return false;
+   if (!is_atom_Node(node)) return false;
    Token *org = rule->ctx;
 
    Token *token = org;
