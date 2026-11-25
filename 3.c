@@ -12,21 +12,21 @@ struct RuleEval {
 };
 
 
-/*
-Node true_node = {
+Node left_node = {
    .refc = 1,
-   .flags = ATOM_FLAG_NODE,
-   .data.atom = cStr("true")
+   .flags = ATOM_TYPE_FLAG,
+   .data.atom = cStr("left")
 };
 
-Node false_node = {
+Node right_node = {
    .refc = 1,
-   .flags = ATOM_FLAG_NODE,
-   .data.atom = cStr("true")
+   .flags = ATOM_TYPE_FLAG,
+   .data.atom = cStr("right")
 };
-*/
 
-U4 is_atom_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG; }
+
+U4 is_atom_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG && !(x->flags & NAME_FLAG_NODE); }
+U4 is_name_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG && (x->flags & NAME_FLAG_NODE); }
 U4 is_ind_Node(Node *x)  { return (x->flags & TYPE_FLAG_NODE) == IND_TYPE_FLAG; }
 U4 is_app_Node(Node *x)  { return (x->flags & TYPE_FLAG_NODE) == (APP_BIN_FLAG | BIN_TYPE_FLAG); }
 U4 is_pair_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == (PAIR_BIN_FLAG | BIN_TYPE_FLAG); }
@@ -232,9 +232,8 @@ bool match_int_to_str(Node *node, RuleEval *rule) {
    return true;
 }
 
-
 bool match_defs(Node *node, RuleEval *rule) {
-   if (!is_atom_Node(node)) return false;
+   if (!is_name_Node(node)) return false;
    Token *org = rule->ctx;
 
    Token *token = org;
@@ -250,6 +249,21 @@ bool match_defs(Node *node, RuleEval *rule) {
 	}
 
    return false;
+}
+
+bool match_is_equal(Node *node, RuleEval *rule) {
+   if (!is_arity_2(node, rule->name)) return false;
+   Node *arg_0 = arg_0_arity_2(node);
+   if (!is_atom_Node(arg_0)) return false;
+   Node *arg_1 = arg_1_arity_2(node);
+   if (!is_atom_Node(arg_1)) return false;
+
+   U4 cmp = cmp_Str(arg_0->data.atom, arg_1->data.atom);
+   release_Node(node->data.bin.left);
+   release_Node(node->data.bin.right);
+   node->flags = IND_TYPE_FLAG;
+   node->data.ind = copy_Node(cmp ? &right_node : &left_node);
+   return true;
 }
 
 

@@ -109,9 +109,11 @@ void rest_of_main(Token *org) {
 	xor4_rule.link.next = &not4_rule.link;
 	not4_rule.link.next = &from_int_rule.link;
 
+	RuleEval is_equal_rule = {.match = &match_is_equal, .name = cStr("is_equal")};
 	RuleEval def_rules = {.match = &match_defs, .name = cStr("defs"), .ctx = org};
 
-	from_int_rule.link.next = &def_rules.link;
+	from_int_rule.link.next = &is_equal_rule.link;
+	is_equal_rule.link.next = &def_rules.link;
 	def_rules.link.next = NULL;
 	
 {
@@ -193,7 +195,7 @@ int main() {
 	// print_tokens(&org);
 
 	convert_atoms(&org);
-	// find_vars(&org);
+	find_names(&org);
 	// print_tokens(&org);
 	// putchar('\n');
 

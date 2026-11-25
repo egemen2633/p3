@@ -1,3 +1,4 @@
-_a = from_int (~mul4 (~$ 2) (~$ 2));
-_b = from_int (~mul4 (~$ _a) (~$ 3));
-_c = from_int (~mul4 (~$ _b) (~$ 5));
+a = is_equal 2 1;
+b = is_equal 12 12;
+A = %a (x,y);
+B = %b (x,y);
