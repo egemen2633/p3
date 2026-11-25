@@ -11,9 +11,34 @@ U4 to_int(Str x) {
    return out;
 }
 
-U4 length_Str(Str x) {
-   return x.length;
+Str from_int(U4 x) {
+	U4 length = x ? 8 - (__builtin_clz(x) >> 2) : 1;
+	U1 *out = Malloc(length);
+	U1 *ptr = out + length;
+	I4 i = -length;
+	while (i) {
+		ptr[i] = nibble_upper(x & 0xF);
+		x >>= 4;
+		i++;
+	}
+	return (Str){out, length};
 }
+
+U4 length_Str(Str x) { return x.length; }
+
+U4 add4(U4 x, U4 y) { return x + y; }
+U4 sub4(U4 x, U4 y) { return x - y; }
+U4 mul4(U4 x, U4 y) { return x * y; }
+U4 neg4(U4 x) { return -x; }
+
+U4 sul4(U4 x, U4 y) { return x << (y & 31); }
+U4 sdl4(U4 x, U4 y) { return x >> (y & 31); }
+U4 sda4(U4 x, U4 y) { return (I4)x >> (y & 31); }
+
+U4 and4(U4 x, U4 y) { return x & y; }
+U4 or4(U4 x, U4 y) { return x | y; }
+U4 xor4(U4 x, U4 y) { return x ^ y; }
+U4 not4(U4 x) { return ~x; }
 
 void print_tokens(Token *org) {
 	Token *token = org;
@@ -75,6 +100,67 @@ void rest_of_main(Node *node) {
 	to_int_rule.name = cStr("$");
 	to_int_rule.ctx = &to_int;
 
+	RuleEval add4_rule;
+	add4_rule.match = &match_bin4;
+	add4_rule.name = cStr("add4");
+	add4_rule.ctx = &add4;
+
+	RuleEval sub4_rule;
+	sub4_rule.match = &match_bin4;
+	sub4_rule.name = cStr("sub4");
+	sub4_rule.ctx = &sub4;
+
+	RuleEval mul4_rule;
+	mul4_rule.match = &match_bin4;
+	mul4_rule.name = cStr("mul4");
+	mul4_rule.ctx = &mul4;
+
+	RuleEval neg4_rule;
+	neg4_rule.match = &match_uni4;
+	neg4_rule.name = cStr("neg4");
+	neg4_rule.ctx = &neg4;
+
+	RuleEval sul4_rule;
+	sul4_rule.match = &match_bin4;
+	sul4_rule.name = cStr("sul4");
+	sul4_rule.ctx = &sul4;
+
+	RuleEval sdl4_rule;
+	sdl4_rule.match = &match_bin4;
+	sdl4_rule.name = cStr("sdl4");
+	sdl4_rule.ctx = &sdl4;
+
+	RuleEval sda4_rule;
+	sda4_rule.match = &match_bin4;
+	sda4_rule.name = cStr("sda4");
+	sda4_rule.ctx = &sda4;
+
+	RuleEval and4_rule;
+	and4_rule.match = &match_bin4;
+	and4_rule.name = cStr("and4");
+	and4_rule.ctx = &and4;
+
+	RuleEval or4_rule;
+	or4_rule.match = &match_bin4;
+	or4_rule.name = cStr("or4");
+	or4_rule.ctx = &or4;
+
+	RuleEval xor4_rule;
+	xor4_rule.match = &match_bin4;
+	xor4_rule.name = cStr("xor4");
+	xor4_rule.ctx = &xor4;
+
+	RuleEval not4_rule;
+	not4_rule.match = &match_uni4;
+	not4_rule.name = cStr("not4");
+	not4_rule.ctx = &not4;
+
+	RuleEval from_int_rule;
+	from_int_rule.match = &match_int_to_str;
+	from_int_rule.name = cStr("from_int");
+	from_int_rule.ctx = &from_int;
+
+
 	concat_str_rule.link.next = &substr_rule.link;
 	substr_rule.link.next = &I_rule.link;
 	I_rule.link.next = &left_bin_ind_rule.link;
@@ -85,7 +171,21 @@ void rest_of_main(Node *node) {
 	left_pair_rule.link.next = &right_pair_rule.link;
 	right_pair_rule.link.next = &length_rule.link;
 	length_rule.link.next = &to_int_rule.link;
-	to_int_rule.link.next = NULL;
+	to_int_rule.link.next = &add4_rule.link;
+
+	add4_rule.link.next = &sub4_rule.link;
+	sub4_rule.link.next = &mul4_rule.link;
+	mul4_rule.link.next = &neg4_rule.link;
+	neg4_rule.link.next = &sul4_rule.link;
+	sul4_rule.link.next = &sdl4_rule.link;
+	sdl4_rule.link.next = &sda4_rule.link;
+	sda4_rule.link.next = &and4_rule.link;
+	and4_rule.link.next = &or4_rule.link;
+	or4_rule.link.next = &xor4_rule.link;
+	xor4_rule.link.next = &not4_rule.link;
+	not4_rule.link.next = &from_int_rule.link;
+
+	from_int_rule.link.next = NULL;
 
 	print_Node(node, 1);
 	putchar('\n');

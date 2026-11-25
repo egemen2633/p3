@@ -2,6 +2,7 @@
 #include "2.c"
 #include <assert.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 typedef struct RuleEval RuleEval;
@@ -220,6 +221,20 @@ bool match_str_to_int(Node *node, RuleEval *rule) {
    return true;
 }
 
+typedef Str int_to_str_func(U4);
+
+bool match_int_to_str(Node *node, RuleEval *rule) {
+   if (!is_arity_1(node, rule->name)) return false;
+   Node *arg_0 = arg_0_arity_1(node);
+   if (!is_atom_Node(arg_0) || arg_0->data.atom.length != 4) return false;
+
+   Str str = ((int_to_str_func *)rule->ctx)(*(U4 *)arg_0->data.atom.start);
+   release_Node(node->data.bin.left);
+   release_Node(node->data.bin.right);
+   node->flags = ATOM_TYPE_FLAG;
+   node->data.atom = str;
+   return true;
+}
 
 
 bool local_eval(Node *node, RuleEval *first) {
