@@ -67,9 +67,10 @@ void char_repr(U1 c) {
 
 void print2_Str(Str x) {
 	for (U4 i = 0; i != x.length; i++) {
-		if (!is_alnum(x.start[i]))
+		U1 c = x.start[i];
+		if (!is_alnum(c) && c != '_')
 			putchar('~');
-		char_repr(x.start[i]);
+		char_repr(c);
 	}
 }
 

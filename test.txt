@@ -1,1 +1,2 @@
-a,a (a a,a a),a (a a,a)
+substr (~\20~\00~\00~\00,~\40~\00~\00~\00) (concat_str abc def),
+I x,right (pair x y)

@@ -1,3 +1,4 @@
+#include "0h.c"
 #include "2.c"
 #include <assert.h>
 #include <stdbool.h>
@@ -199,4 +200,24 @@ bool match_binary(Node *node, RuleEval *rule) {
    node->flags = IND_TYPE_FLAG;
    node->data.ind = x;
    return true;
+}
+
+
+bool local_eval(Node *node, RuleEval *first) {
+   while (first) {
+      if (first->match(node, first)) return true;
+      first = container_of(first->link.next, RuleEval, link);
+   }
+   return false;
+}
+
+bool step_eval(Node *node, RuleEval *first) {
+   if (local_eval(node, first))
+      return true;
+   if (node->flags & BIN_TYPE_FLAG)
+      return step_eval(node->data.bin.left, first)
+         || step_eval(node->data.bin.right, first);
+   if ((node->flags & 1) == IND_TYPE_FLAG)
+      return step_eval(node->data.ind, first);
+   return false;
 }

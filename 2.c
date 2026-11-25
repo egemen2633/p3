@@ -1,7 +1,4 @@
 #include "0h.c"
-#include <assert.h>
-#include <linux/limits.h>
-#include <stdlib.h>
 
 #define BIN_TYPE_FLAG 0b10
 #define ATOM_TYPE_FLAG 0
@@ -257,7 +254,7 @@ void full_parse(Token *left) {
 		if (t1->data.bytes[0] == ')') { // (|a|)
 			Free(pop_DL(&left->link));
 			Free(pop_DL(&t1->link));
-			return;
+			return; // a
 		}
 		assert(t1->data.bytes[0] == '('); // (|a|(
 		full_parse(t1);
@@ -286,7 +283,7 @@ label_1: {
 
 	if (is_node_token(t3)) { // (|a|,|a|a
 		app_parse(t2, t3);
-		goto label_1;
+		goto label_1; // (|a|,|a a
 	}
 
 	if (is_null_token(t3)) {
@@ -305,14 +302,14 @@ label_1: {
 	if (t3->data.bytes[0] == ',') { // (|a|,|a|,
 		pair_parse(t0, t1, t2);
 		t1 = t3;
-		goto continue_0;
+		goto continue_0; // (|a,a|,
 	}
 
 	assert(t3->data.bytes[0] == ')'); // (|a|,|a|)
 	pair_parse(t0, t1, t2);
 	Free(pop_DL(&left->link));
 	Free(pop_DL(&t3->link));
-	return;
+	return; // a,a
 }
 }
 }

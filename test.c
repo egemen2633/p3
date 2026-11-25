@@ -1,6 +1,7 @@
 #include "0h.c"
 #include "1.c"
-#include "2.c"
+#include "3.c"
+#include <unistd.h>
 
 void print_tokens(Token *org) {
 	Token *token = org;
@@ -9,6 +10,67 @@ void print_tokens(Token *org) {
 		putchar(' ');
 	}
 	putchar('\n');
+}
+
+void rest_of_main(Node *node) {
+	RuleEval concat_str_rule;
+	concat_str_rule.match = &match_concat_str;
+	concat_str_rule.name = cStr("concat_str");
+
+	RuleEval substr_rule;
+	substr_rule.match = &match_substr;
+	substr_rule.name = cStr("substr");
+
+	RuleEval I_rule;
+	I_rule.match = &match_I;
+	I_rule.name = cStr("I");
+
+	RuleEval uni_ind_rule;
+	uni_ind_rule.match = &match_uni_ind;
+	uni_ind_rule.name = cStr("uni_ind");
+
+	RuleEval left_bin_ind_rule;
+	left_bin_ind_rule.match = &match_bin_ind;
+	left_bin_ind_rule.name = cStr("left_bin_ind");
+	left_bin_ind_rule.ctx = 0;
+
+	RuleEval right_bin_ind_rule;
+	right_bin_ind_rule.match = &match_bin_ind;
+	right_bin_ind_rule.name = cStr("right_bin_ind");
+	right_bin_ind_rule.ctx = (void *)1;
+
+	RuleEval pair_rule;
+	pair_rule.match = &match_pair;
+	pair_rule.name = cStr("pair");
+
+	RuleEval left_pair_rule;
+	left_pair_rule.match = &match_binary;
+	left_pair_rule.name = cStr("left");
+	left_pair_rule.ctx = 0;
+
+	RuleEval right_pair_rule;
+	right_pair_rule.match = &match_binary;
+	right_pair_rule.name = cStr("right");
+	right_pair_rule.ctx = (void *)1;
+
+	concat_str_rule.link.next = &substr_rule.link;
+	substr_rule.link.next = &I_rule.link;
+	I_rule.link.next = &left_bin_ind_rule.link;
+	// uni_ind_rule.link.next = &left_bin_ind_rule.link;
+	left_bin_ind_rule.link.next = &right_bin_ind_rule.link;
+	right_bin_ind_rule.link.next = &pair_rule.link;
+	pair_rule.link.next = &left_pair_rule.link;
+	left_pair_rule.link.next = &right_pair_rule.link;
+	right_pair_rule.link.next = NULL;
+
+	print_Node(node, 1);
+	putchar('\n');
+	while (step_eval(node, &concat_str_rule)) {
+		print_Node(node, 1);
+		putchar('\n');
+	}
+
+	release_Node(node);
 }
 
 // clang test.c -o test 0.c -D_GNU_SOURCE
@@ -65,15 +127,16 @@ int main() {
 
 	convert_atoms(&org);
 	// find_vars(&org);
-	print_tokens(&org);
-	putchar('\n');
+	// print_tokens(&org);
+	// putchar('\n');
 
 	full_parse(&org);
-	print_tokens(&org);
+	// print_tokens(&org);
 
-	Token *expr = container_of(org.link.next, Token, link);
-	release_Node(expr->data.generic._0);
-	Free(expr);
+	Token *expr_token = container_of(org.link.next, Token, link);
+	Free(expr_token);
 
-	printf("Free/Malloc = %u/%u\n", total_Free, total_Malloc);
+	printf("Free/Malloc = %u/%u\n\n", total_Free, total_Malloc);
+	rest_of_main(expr_token->data.generic._0);
+	printf("\nFree/Malloc = %u/%u\n", total_Free, total_Malloc);
 }
