@@ -1,4 +1,5 @@
 #include "0h.c"
+#include <stdio.h>
 
 #define BIN_TYPE_FLAG 0b10
 #define ATOM_TYPE_FLAG 0
@@ -103,6 +104,25 @@ void print_Token_Node(Token *x) {
 RuleLexer node_rule = {
 	.name = cStr("node"),
 	.print = &print_Token_Node
+};
+
+typedef struct Def Def;
+
+struct Def {
+	Str name;
+	Node *to;
+};
+
+void print_Token_Def(Token *x) {
+	Def *def = x->data.generic._0;
+	print2_Str(def->name);
+	fputs(" = ", stdout);
+	print_Node(def->to, 1);
+}
+
+RuleLexer def_rule = {
+	.name = cStr("def"),
+	.print = &print_Token_Def
 };
 
 void convert_atoms(Token *org) {
@@ -247,9 +267,10 @@ void full_parse(Token *left) {
 
 	assert(is_node_token(t0)); // (|a
 
-	if (is_null_token(t1)) return; // (|a|#
+	// if (is_null_token(t1)) return; // (|a|#
 
 	if (is_char_token(t1)) {
+		if (t1->data.bytes[0] == ';') return; // (|a|,
 		if (t1->data.bytes[0] == ',') goto continue_0; // (|a|,
 		if (t1->data.bytes[0] == ')') { // (|a|)
 			Free(pop_DL(&left->link));
@@ -286,12 +307,12 @@ label_1: {
 		goto label_1; // (|a|,|a a
 	}
 
-	if (is_null_token(t3)) {
+	assert(is_char_token(t3));
+
+	if (t3->data.bytes[0] == ';') {
 		pair_parse(t0, t1, t2);
 		return;
 	}
-
-	assert(is_char_token(t3));
 
 	if (t3->data.bytes[0] == '(') { // (|a|,|a|(
 		full_parse(t3);
@@ -312,4 +333,13 @@ label_1: {
 	return; // a,a
 }
 }
+}
+
+void full_process(Token *org) {
+	Token *x = org;
+	while ((x = container_of(x->link.next, Token, link)) != org) {
+		if (is_char_token(x) && x->data.bytes[0] == '=') {
+			full_parse(x);
+		}
+	}
 }

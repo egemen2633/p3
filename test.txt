@@ -1,1 +1,1 @@
-from_int (add4 (~$ 9) (neg4 (~$ 5)))
+a = from_int (~- (~$ 1));

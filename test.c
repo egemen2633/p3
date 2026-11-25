@@ -49,116 +49,30 @@ void print_tokens(Token *org) {
 	putchar('\n');
 }
 
-void rest_of_main(Node *node) {
-	RuleEval concat_str_rule;
-	concat_str_rule.match = &match_concat_str;
-	concat_str_rule.name = cStr("concat_str");
-
-	RuleEval substr_rule;
-	substr_rule.match = &match_substr;
-	substr_rule.name = cStr("substr");
-
-	RuleEval I_rule;
-	I_rule.match = &match_I;
-	I_rule.name = cStr("I");
-
-	RuleEval uni_ind_rule;
-	uni_ind_rule.match = &match_uni_ind;
-	uni_ind_rule.name = cStr("uni_ind");
-
-	RuleEval left_bin_ind_rule;
-	left_bin_ind_rule.match = &match_bin_ind;
-	left_bin_ind_rule.name = cStr("left_bin_ind");
-	left_bin_ind_rule.ctx = 0;
-
-	RuleEval right_bin_ind_rule;
-	right_bin_ind_rule.match = &match_bin_ind;
-	right_bin_ind_rule.name = cStr("right_bin_ind");
-	right_bin_ind_rule.ctx = (void *)1;
-
-	RuleEval pair_rule;
-	pair_rule.match = &match_pair;
-	pair_rule.name = cStr("pair");
-
-	RuleEval left_pair_rule;
-	left_pair_rule.match = &match_binary;
-	left_pair_rule.name = cStr("left");
-	left_pair_rule.ctx = 0;
-
-	RuleEval right_pair_rule;
-	right_pair_rule.match = &match_binary;
-	right_pair_rule.name = cStr("right");
-	right_pair_rule.ctx = (void *)1;
-
-	RuleEval length_rule;
-	length_rule.match = &match_str_to_int;
-	length_rule.name = cStr("length");
-	length_rule.ctx = &length_Str;
-
-	RuleEval to_int_rule;
-	to_int_rule.match = &match_str_to_int;
-	to_int_rule.name = cStr("$");
-	to_int_rule.ctx = &to_int;
-
-	RuleEval add4_rule;
-	add4_rule.match = &match_bin4;
-	add4_rule.name = cStr("add4");
-	add4_rule.ctx = &add4;
-
-	RuleEval sub4_rule;
-	sub4_rule.match = &match_bin4;
-	sub4_rule.name = cStr("sub4");
-	sub4_rule.ctx = &sub4;
-
-	RuleEval mul4_rule;
-	mul4_rule.match = &match_bin4;
-	mul4_rule.name = cStr("mul4");
-	mul4_rule.ctx = &mul4;
-
-	RuleEval neg4_rule;
-	neg4_rule.match = &match_uni4;
-	neg4_rule.name = cStr("neg4");
-	neg4_rule.ctx = &neg4;
-
-	RuleEval sul4_rule;
-	sul4_rule.match = &match_bin4;
-	sul4_rule.name = cStr("sul4");
-	sul4_rule.ctx = &sul4;
-
-	RuleEval sdl4_rule;
-	sdl4_rule.match = &match_bin4;
-	sdl4_rule.name = cStr("sdl4");
-	sdl4_rule.ctx = &sdl4;
-
-	RuleEval sda4_rule;
-	sda4_rule.match = &match_bin4;
-	sda4_rule.name = cStr("sda4");
-	sda4_rule.ctx = &sda4;
-
-	RuleEval and4_rule;
-	and4_rule.match = &match_bin4;
-	and4_rule.name = cStr("and4");
-	and4_rule.ctx = &and4;
-
-	RuleEval or4_rule;
-	or4_rule.match = &match_bin4;
-	or4_rule.name = cStr("or4");
-	or4_rule.ctx = &or4;
-
-	RuleEval xor4_rule;
-	xor4_rule.match = &match_bin4;
-	xor4_rule.name = cStr("xor4");
-	xor4_rule.ctx = &xor4;
-
-	RuleEval not4_rule;
-	not4_rule.match = &match_uni4;
-	not4_rule.name = cStr("not4");
-	not4_rule.ctx = &not4;
-
-	RuleEval from_int_rule;
-	from_int_rule.match = &match_int_to_str;
-	from_int_rule.name = cStr("from_int");
-	from_int_rule.ctx = &from_int;
+void rest_of_main(Token *org) {
+	RuleEval concat_str_rule    = {.match = &match_concat_str, .name = cStr("concat_str")};
+	RuleEval substr_rule        = {.match = &match_substr,     .name = cStr("substr")};
+	RuleEval I_rule             = {.match = &match_I,          .name = cStr("I")};
+	RuleEval uni_ind_rule       = {.match = &match_uni_ind,    .name = cStr("uni_ind")};
+	RuleEval left_bin_ind_rule  = {.match = &match_bin_ind,    .name = cStr("left_bin_ind"),  .ctx = (void *)0};
+	RuleEval right_bin_ind_rule = {.match = &match_bin_ind,    .name = cStr("right_bin_ind"), .ctx = (void *)1};
+	RuleEval pair_rule          = {.match = &match_pair,       .name = cStr("pair")};
+	RuleEval left_pair_rule     = {.match = &match_binary,     .name = cStr("left"),          .ctx = (void *)0};
+	RuleEval right_pair_rule    = {.match = &match_binary,     .name = cStr("right"),         .ctx = (void *)1};
+	RuleEval length_rule        = {.match = &match_str_to_int, .name = cStr("length"),        .ctx = &length_Str};
+	RuleEval to_int_rule        = {.match = &match_str_to_int, .name = cStr("$"),             .ctx = &to_int};
+	RuleEval add4_rule          = {.match = &match_bin4,       .name = cStr("add4"),          .ctx = &add4};
+	RuleEval sub4_rule          = {.match = &match_bin4,       .name = cStr("sub4"),          .ctx = &sub4};
+	RuleEval mul4_rule          = {.match = &match_bin4,       .name = cStr("mul4"),          .ctx = &mul4};
+	RuleEval neg4_rule          = {.match = &match_uni4,       .name = cStr("-"),             .ctx = &neg4};
+	RuleEval sul4_rule          = {.match = &match_bin4,       .name = cStr("sul4"),          .ctx = &sul4};
+	RuleEval sdl4_rule          = {.match = &match_bin4,       .name = cStr("sdl4"),          .ctx = &sdl4};
+	RuleEval sda4_rule          = {.match = &match_bin4,       .name = cStr("sda4"),          .ctx = &sda4};
+	RuleEval and4_rule          = {.match = &match_bin4,       .name = cStr("and4"),          .ctx = &and4};
+	RuleEval or4_rule           = {.match = &match_bin4,       .name = cStr("or4"),           .ctx = &or4};
+	RuleEval xor4_rule          = {.match = &match_bin4,       .name = cStr("xor4"),          .ctx = &xor4};
+	RuleEval not4_rule          = {.match = &match_uni4,       .name = cStr("not4"),          .ctx = &not4};
+	RuleEval from_int_rule      = {.match = &match_int_to_str, .name = cStr("from_int"),      .ctx = &from_int};
 
 
 	concat_str_rule.link.next = &substr_rule.link;
@@ -187,14 +101,14 @@ void rest_of_main(Node *node) {
 
 	from_int_rule.link.next = NULL;
 
+	/*
 	print_Node(node, 1);
 	putchar('\n');
 	while (step_eval(node, &concat_str_rule)) {
 		print_Node(node, 1);
 		putchar('\n');
 	}
-
-	release_Node(node);
+	*/
 }
 
 // clang test.c -o test 0.c -D_GNU_SOURCE
@@ -254,14 +168,8 @@ int main() {
 	// print_tokens(&org);
 	// putchar('\n');
 
-	full_parse(&org);
-	// print_tokens(&org);
+	full_process(&org);
+	print_tokens(&org);
 
-	Token *expr_token = container_of(org.link.next, Token, link);
-	Node *expr = expr_token->data.generic._0;
-	Free(expr_token);
-
-	printf("Free/Malloc = %u/%u\n\n", total_Free, total_Malloc);
-	rest_of_main(expr);
-	printf("\nFree/Malloc = %u/%u\n", total_Free, total_Malloc);
+	rest_of_main(&org);
 }
