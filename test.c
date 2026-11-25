@@ -3,6 +3,18 @@
 #include "3.c"
 #include <unistd.h>
 
+U4 to_int(Str x) {
+   U4 out = 0;
+   U4 i = x.length;
+   while (i--)
+      out = out << 4 | nibble_to_int(x.start[i]);
+   return out;
+}
+
+U4 length_Str(Str x) {
+   return x.length;
+}
+
 void print_tokens(Token *org) {
 	Token *token = org;
 	while ((token = container_of(token->link.next, Token, link)) != org) {
@@ -53,6 +65,16 @@ void rest_of_main(Node *node) {
 	right_pair_rule.name = cStr("right");
 	right_pair_rule.ctx = (void *)1;
 
+	RuleEval length_rule;
+	length_rule.match = &match_str_to_int;
+	length_rule.name = cStr("length");
+	length_rule.ctx = &length_Str;
+
+	RuleEval to_int_rule;
+	to_int_rule.match = &match_str_to_int;
+	to_int_rule.name = cStr("$");
+	to_int_rule.ctx = &to_int;
+
 	concat_str_rule.link.next = &substr_rule.link;
 	substr_rule.link.next = &I_rule.link;
 	I_rule.link.next = &left_bin_ind_rule.link;
@@ -61,7 +83,9 @@ void rest_of_main(Node *node) {
 	right_bin_ind_rule.link.next = &pair_rule.link;
 	pair_rule.link.next = &left_pair_rule.link;
 	left_pair_rule.link.next = &right_pair_rule.link;
-	right_pair_rule.link.next = NULL;
+	right_pair_rule.link.next = &length_rule.link;
+	length_rule.link.next = &to_int_rule.link;
+	to_int_rule.link.next = NULL;
 
 	print_Node(node, 1);
 	putchar('\n');
@@ -134,9 +158,10 @@ int main() {
 	// print_tokens(&org);
 
 	Token *expr_token = container_of(org.link.next, Token, link);
+	Node *expr = expr_token->data.generic._0;
 	Free(expr_token);
 
 	printf("Free/Malloc = %u/%u\n\n", total_Free, total_Malloc);
-	rest_of_main(expr_token->data.generic._0);
+	rest_of_main(expr);
 	printf("\nFree/Malloc = %u/%u\n", total_Free, total_Malloc);
 }

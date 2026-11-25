@@ -202,6 +202,25 @@ bool match_binary(Node *node, RuleEval *rule) {
    return true;
 }
 
+typedef U4 str_to_int_func(Str);
+
+bool match_str_to_int(Node *node, RuleEval *rule) {
+   if (!is_arity_1(node, rule->name)) return false;
+   Node *arg_0 = arg_0_arity_1(node);
+   if (!is_atom_Node(arg_0)) return false;
+
+   U4 *buffer = Malloc(4);
+   *buffer = ((str_to_int_func *)rule->ctx)(arg_0->data.atom);
+
+   release_Node(node->data.bin.left);
+   release_Node(node->data.bin.right);
+   node->flags = ATOM_TYPE_FLAG;
+   node->data.atom.start = (U1 *)buffer;
+   node->data.atom.length = 4;
+   return true;
+}
+
+
 
 bool local_eval(Node *node, RuleEval *first) {
    while (first) {
