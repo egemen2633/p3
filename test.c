@@ -11,6 +11,7 @@ void print_tokens(Token *org) {
 	putchar('\n');
 }
 
+// clang 3/test.c -o 3/test 3/0.c -D_GNU_SOURCE
 int main() {
 	RuleLexer str_rule = {
 		.match = &match_str,

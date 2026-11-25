@@ -1,4 +1,5 @@
 #include "2.c"
+#include <assert.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -60,6 +61,33 @@ bool match_concat_str(Node *node, RuleEval *rule) {
    U1 *buffer = Malloc(length);
    memcpy(buffer, arg_0->data.atom.start, arg_0->data.atom.length);
    memcpy(buffer + arg_0->data.atom.length, arg_1->data.atom.start, arg_1->data.atom.length);
+
+   release_Node(node->data.bin.left);
+   release_Node(node->data.bin.right);
+   node->flags = ATOM_TYPE_FLAG;
+   node->data.atom.start = buffer;
+   node->data.atom.length = length;
+   return true;
+}
+
+bool match_substr(Node *node, RuleEval *rule) {
+   if (!is_arity_2(node, rule->name)) return false;
+   Node *arg_0 = arg_0_arity_2(node);
+   if (!is_pair_Node(arg_0)) return false;
+   Node *arg_1 = arg_1_arity_2(node);
+   if (!is_atom_Node(arg_1)) return false;
+
+   Node *nl = arg_0->data.bin.left;
+   if (!is_atom_Node(nl) || nl->data.atom.length != 4) return false;
+   Node *nr = arg_0->data.bin.right;
+   if (!is_atom_Node(nr) || nr->data.atom.length != 4) return false;
+
+   U4 left = *(U4 *)nl->data.atom.start;
+   U4 right = *(U4 *)nr->data.atom.start;
+
+   U4 length = right - left;
+   U1 *buffer = Malloc(length);
+   memcpy(buffer, arg_1->data.atom.start + left, length);
 
    release_Node(node->data.bin.left);
    release_Node(node->data.bin.right);
