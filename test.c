@@ -65,8 +65,8 @@ int main() {
 
 	convert_atoms(&org);
 	// find_vars(&org);
-	// print_tokens(&org);
-	// putchar('\n');
+	print_tokens(&org);
+	putchar('\n');
 
 	full_parse(&org);
 	print_tokens(&org);

@@ -1,5 +1,7 @@
 #include "0h.c"
+#include <assert.h>
 #include <linux/limits.h>
+#include <stdlib.h>
 
 #define BIN_TYPE_FLAG 0b10
 #define ATOM_TYPE_FLAG 0
@@ -98,7 +100,7 @@ Node *new_bin_Node(Node *left, Node *right) {
 }
 
 void print_Token_Node(Token *x) {
-	print_Node(x->data.generic._0, false);
+	print_Node(x->data.generic._0, 1);
 }
 
 RuleLexer node_rule = {
@@ -159,6 +161,7 @@ bool step_parse(Token *left) {
 }
 */
 
+/*
 void full_parse(Token *left) {
 	Token *one = container_of(left->link.next, Token, link);
 	Token *two = container_of(one->link.next, Token, link);
@@ -183,11 +186,8 @@ if (two->data.bytes[0] == '(') {
 	goto label_0;
 }
 if (two->data.bytes[0] == ',') {
+	full_parse(two);
 	Token *three = container_of(two->link.next, Token, link);
-	if (!cmp_Str(three->rule->name, cStr("char")) && three->data.bytes[0] == '(') {
-		full_parse(three);
-		three = container_of(two->link.next, Token, link);
-	}
 	if (!cmp_Str(three->rule->name, cStr("node"))) {
 		Node *new = new_bin_Node(one->data.generic._0, three->data.generic._0);
 		new->flags |= PAIR_BIN_FLAG;
@@ -208,4 +208,111 @@ if (two->data.bytes[0] == ',') {
 	}
 
 	return;
+}
+*/
+
+bool is_char_token(Token *t) {
+	return !cmp_Str(t->rule->name, cStr("char"));
+}
+
+bool is_node_token(Token *t) {
+	return !cmp_Str(t->rule->name, cStr("node"));
+}
+
+bool is_null_token(Token *t) {
+	return !cmp_Str(t->rule->name, cStr("null"));
+}
+
+void app_parse(Token *t0, Token *t1) {
+	Node *new = new_bin_Node(t0->data.generic._0, t1->data.generic._0);
+	t0->data.generic._0 = new;
+	Free(pop_DL(&t1->link));
+}
+
+void pair_parse(Token *t0, Token *comma, Token *t1) {
+	Free(pop_DL(&comma->link));
+	Node *new = new_bin_Node(t0->data.generic._0, t1->data.generic._0);
+	new->flags |= PAIR_BIN_FLAG;
+	t0->data.generic._0 = new;
+	Free(pop_DL(&t1->link));
+}
+
+void full_parse(Token *left) {
+	Token *t0 = container_of(left->link.next, Token, link);
+	Token *t1 = container_of(t0->link.next, Token, link);
+
+	if (is_char_token(t0)) {
+		assert(t0->data.bytes[0] == '('); // (|(
+		full_parse(t0);
+		full_parse(left);
+		return;
+	}
+
+	assert(is_node_token(t0)); // (|a
+
+	if (is_null_token(t1)) return; // (|a|#
+
+	if (is_char_token(t1)) {
+		if (t1->data.bytes[0] == ',') goto continue_0; // (|a|,
+		if (t1->data.bytes[0] == ')') { // (|a|)
+			Free(pop_DL(&left->link));
+			Free(pop_DL(&t1->link));
+			return;
+		}
+		assert(t1->data.bytes[0] == '('); // (|a|(
+		full_parse(t1);
+		full_parse(left);
+		return;
+	}
+
+	assert(is_node_token(t1)); // (|a|a
+
+	app_parse(t0, t1);
+	full_parse(left);
+	return;
+
+continue_0: { // (|a|,
+	Token *t2 = container_of(t1->link.next, Token, link);
+	if (is_char_token(t2)) {
+		assert(t2->data.bytes[0] == '('); // (|a|,|(
+		full_parse(t2);
+		full_parse(left);
+		return;
+	}
+
+	assert(is_node_token(t2)); // (|a|,|a
+label_1: {
+	Token *t3 = container_of(t2->link.next, Token, link);
+
+	if (is_node_token(t3)) { // (|a|,|a|a
+		app_parse(t2, t3);
+		goto label_1;
+	}
+
+	if (is_null_token(t3)) {
+		pair_parse(t0, t1, t2);
+		return;
+	}
+
+	assert(is_char_token(t3));
+
+	if (t3->data.bytes[0] == '(') { // (|a|,|a|(
+		full_parse(t3);
+		full_parse(left);
+		return;
+	}
+
+	if (t3->data.bytes[0] == ',') { // (|a|,|a|,
+		pair_parse(t0, t1, t2);
+		t1 = t3;
+		goto continue_0;
+	}
+
+	assert(t3->data.bytes[0] == ')'); // (|a|,|a|)
+	pair_parse(t0, t1, t2);
+	Free(pop_DL(&left->link));
+	Free(pop_DL(&t3->link));
+	return;
+}
+}
 }
