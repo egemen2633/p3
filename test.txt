@@ -1,1 +1,3 @@
-a = from_int (~- (~$ 1));
+a = from_int (~mul4 (~$ 2) (~$ 2));
+b = from_int (~mul4 (~$ %a) (~$ 3));
+c = from_int (~mul4 (~$ %b) (~$ 4));

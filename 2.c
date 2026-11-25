@@ -7,7 +7,7 @@
 #define APP_BIN_FLAG 0
 #define PAIR_BIN_FLAG 1
 #define TYPE_FLAG_NODE 0b11
-// #define VAR_FLAG_NODE 2
+#define NAME_FLAG_NODE 4
 
 typedef struct Node Node;
 
@@ -47,6 +47,7 @@ void destructor_Node(Handle h) {
 void print_Node(Node *x, U4 outer_n_side) {
 	switch (x->flags & TYPE_FLAG_NODE) {
 	case ATOM_TYPE_FLAG: {
+		if (x->flags & NAME_FLAG_NODE) putchar('%');
 		print2_Str(x->data.atom);
 		return;
 	}
@@ -127,25 +128,43 @@ RuleLexer def_rule = {
 
 void convert_atoms(Token *org) {
 	Token *token = org;
-	while ((token = container_of(token->link.next, Token, link)) != org) {
-		if (cmp_Str(token->rule->name, cStr("str"))) continue;
-		token->rule = &node_rule;
-		token->data.generic._0 = new_atom_Node(token->data.str);
+out:
+	token = container_of(token->link.next, Token, link);
+	if (token == org) return;
+	// print_Token_debug(token);
+	// putchar('\n');
+
+	if (cmp_Str(token->rule->name, cStr("char"))) goto out;
+	if (token->data.bytes[0] == '=') goto in;
+	goto out;
+in:
+	token = container_of(token->link.next, Token, link);
+	if (token == org) return;
+	// putchar('\t');
+	// print_Token_debug(token);
+	// putchar('\n');
+
+	if (!cmp_Str(token->rule->name, cStr("char"))) {
+		if (token->data.bytes[0] == ';') goto out;
+		goto in;
 	}
+	if (cmp_Str(token->rule->name, cStr("str"))) goto in;
+
+	token->rule = &node_rule;
+	token->data.generic._0 = new_atom_Node(token->data.str);
+	goto in;
 }
 
-/*
-void find_vars(Token *org) {
+void find_names(Token *org) {
 	Token *token = org;
 	while ((token = container_of(token->link.next, Token, link)) != org) {
 		if (cmp_Str(token->rule->name, cStr("char")) || token->data.bytes[0] != '%') continue;
 		token = container_of(token->link.next, Token, link);
 		Free(pop_DL(token->link.prev));
 		Node *node = token->data.generic._0;
-		// node->flags |= VAR_FLAG_NODE;
+		node->flags |= NAME_FLAG_NODE;
 	}
 }
-*/
 
 /*
 bool step_parse(Token *left) {
@@ -338,8 +357,24 @@ label_1: {
 void full_process(Token *org) {
 	Token *x = org;
 	while ((x = container_of(x->link.next, Token, link)) != org) {
-		if (is_char_token(x) && x->data.bytes[0] == '=') {
-			full_parse(x);
-		}
+		if (!(is_char_token(x) && x->data.bytes[0] == '='))
+			continue;
+		full_parse(x);
+	}
+}
+
+void create_defs(Token *org) {
+	Token *x = org;
+	while ((x = container_of(x->link.next, Token, link)) != org) {
+		if (!(is_char_token(x) && x->data.bytes[0] == '='))
+			continue;
+		Def *def = Malloc(sizeof(Def));
+		def->name = container_of(x->link.prev, Token, link)->data.str;
+		def->to = container_of(x->link.next, Token, link)->data.generic._0;
+		x->data.generic._0 = def;
+		x->rule = &def_rule;
+		Free(pop_DL(x->link.prev));
+		Free(pop_DL(x->link.next));
+		Free(pop_DL(x->link.next));
 	}
 }

@@ -30,7 +30,8 @@ Node false_node = {
 };
 */
 
-U4 is_atom_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG; }
+U4 is_atom_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG && !(x->flags & NAME_FLAG_NODE); }
+U4 is_name_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == ATOM_TYPE_FLAG && (x->flags & NAME_FLAG_NODE); }
 U4 is_ind_Node(Node *x)  { return (x->flags & TYPE_FLAG_NODE) == IND_TYPE_FLAG; }
 U4 is_app_Node(Node *x)  { return (x->flags & TYPE_FLAG_NODE) == (APP_BIN_FLAG | BIN_TYPE_FLAG); }
 U4 is_pair_Node(Node *x) { return (x->flags & TYPE_FLAG_NODE) == (PAIR_BIN_FLAG | BIN_TYPE_FLAG); }
@@ -234,6 +235,26 @@ bool match_int_to_str(Node *node, RuleEval *rule) {
    node->flags = ATOM_TYPE_FLAG;
    node->data.atom = str;
    return true;
+}
+
+
+bool match_defs(Node *node, RuleEval *rule) {
+   if (!is_name_Node(node)) return false;
+   Token *org = rule->ctx;
+
+   Token *token = org;
+	while ((token = container_of(token->link.next, Token, link)) != org) {
+		assert(!cmp_Str(token->rule->name, cStr("def")));
+		Def *def = token->data.generic._0;
+      if (!cmp_Str(node->data.atom, def->name)) {
+         Free(node->data.atom.start);
+         node->flags = IND_TYPE_FLAG;
+         node->data.ind = copy_Node(def->to);
+         return true;
+      }
+	}
+
+   return false;
 }
 
 

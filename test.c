@@ -1,6 +1,7 @@
 #include "0h.c"
 #include "1.c"
 #include "3.c"
+#include <assert.h>
 #include <unistd.h>
 
 U4 to_int(Str x) {
@@ -44,9 +45,18 @@ void print_tokens(Token *org) {
 	Token *token = org;
 	while ((token = container_of(token->link.next, Token, link)) != org) {
 		print_Token_debug(token);
-		putchar(' ');
+		putchar('\n');
 	}
 	putchar('\n');
+}
+
+void eval(Node *node, RuleEval *rule) {
+	// print_Node(node, 1);
+	// putchar('\n');
+	while (step_eval(node, rule)) {
+		// print_Node(node, 1);
+		// putchar('\n');
+	}
 }
 
 void rest_of_main(Token *org) {
@@ -99,16 +109,35 @@ void rest_of_main(Token *org) {
 	xor4_rule.link.next = &not4_rule.link;
 	not4_rule.link.next = &from_int_rule.link;
 
-	from_int_rule.link.next = NULL;
+	RuleEval def_rules = {.match = &match_defs, .name = cStr("defs"), .ctx = org};
 
-	/*
-	print_Node(node, 1);
-	putchar('\n');
-	while (step_eval(node, &concat_str_rule)) {
-		print_Node(node, 1);
-		putchar('\n');
+	from_int_rule.link.next = &def_rules.link;
+	def_rules.link.next = NULL;
+
+{
+	Token *token = org;
+	while ((token = container_of(token->link.next, Token, link)) != org) {
+		assert(!cmp_Str(token->rule->name, cStr("def")));
+		Def *def = token->data.generic._0;
+		eval(def->to, &concat_str_rule);
 	}
-	*/
+}
+
+	print_tokens(org);
+
+{
+	Token *token = org, *next = container_of(token->link.next, Token, link);
+	while ((token = next) != org) {
+		assert(!cmp_Str(token->rule->name, cStr("def")));
+		Def *def = token->data.generic._0;
+		Free(def->name.start);
+		release_Node(def->to);
+		Free(def);
+		next = container_of(token->link.next, Token, link);
+		Free(token);
+	}
+}
+	printf("Free/Malloc = %u/%u\n", total_Free, total_Malloc);
 }
 
 // clang test.c -o test 0.c -D_GNU_SOURCE
@@ -164,11 +193,13 @@ int main() {
 	// print_tokens(&org);
 
 	convert_atoms(&org);
+	find_names(&org);
 	// find_vars(&org);
 	// print_tokens(&org);
 	// putchar('\n');
 
 	full_process(&org);
+	create_defs(&org);
 	print_tokens(&org);
 
 	rest_of_main(&org);
