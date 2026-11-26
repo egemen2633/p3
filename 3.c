@@ -1,5 +1,6 @@
 #include "0h.c"
 #include "2.c"
+#include <stdbool.h>
 
 typedef struct RuleEval RuleEval;
 typedef bool MatchEval(Node *, RuleEval *);
@@ -269,7 +270,10 @@ bool match_is_equal(Node *node, RuleEval *rule) {
 
 bool local_eval(Node *node, RuleEval *first) {
    while (first) {
-      if (first->match(node, first)) return true;
+      if (first->match(node, first)) {
+         node->flags |= ONE_TIME_FLAG_NODE;
+         return true;
+      }
       first = container_of(first->link.next, RuleEval, link);
    }
    return false;
@@ -284,4 +288,26 @@ bool step_eval(Node *node, RuleEval *first) {
    if ((node->flags & 1) == IND_TYPE_FLAG)
       return step_eval(node->data.ind, first);
    return false;
+}
+
+
+
+bool match_exec_cancel(Node *node, RuleEval *rule) {
+   if (!is_app_Node(node)) return false;
+   Node *nl = node->data.bin.left;
+   Node *nr = node->data.bin.right;
+   if (!is_atom_Node(nl)) return false;
+   if (!is_app_Node(nr)) return false;
+   if (cmp_Str(cStr("exec"), nl->data.atom)) return false;
+   Node *nrl = nr->data.bin.left;
+   Node *nrr = nr->data.bin.right;
+   if (!is_atom_Node(nrl)) return false;
+   if (cmp_Str(cStr("quote"), nrl->data.atom)) return false;
+
+   nrr = copy_Node(nrr);
+   release_Node(node->data.bin.left);
+   release_Node(node->data.bin.right);
+   node->data.ind = nrr;
+   node->flags = IND_TYPE_FLAG;
+   return true;
 }

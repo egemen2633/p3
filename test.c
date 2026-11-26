@@ -2,6 +2,7 @@
 #include "1.c"
 #include "3.c"
 #include <assert.h>
+#include <stdio.h>
 #include <unistd.h>
 
 U4 to_int(Str x) {
@@ -51,12 +52,11 @@ void print_tokens(Token *org) {
 }
 
 void eval(Node *node, RuleEval *rule) {
-	// print_Node(node, 1);
-	// putchar('\n');
-	while (step_eval(node, rule)) {
-		// print_Node(node, 1);
-		// putchar('\n');
-	}
+	do {
+		print_Node(node, 1);
+		putchar('\n');
+	} while (step_eval(node, rule));
+	putchar('\n');
 }
 
 void rest_of_main(Token *org) {
@@ -111,9 +111,11 @@ void rest_of_main(Token *org) {
 
 	RuleEval is_equal_rule = {.match = &match_is_equal, .name = cStr("is_equal")};
 	RuleEval def_rules = {.match = &match_defs, .name = cStr("defs"), .ctx = org};
+	RuleEval exec_cancel_rule = {.match = &match_exec_cancel, .name = cStr("exec_cancel")};
 
 	from_int_rule.link.next = &is_equal_rule.link;
-	is_equal_rule.link.next = &def_rules.link;
+	is_equal_rule.link.next = &exec_cancel_rule.link;
+	exec_cancel_rule.link.next = &def_rules.link;
 	def_rules.link.next = NULL;
 	
 {
@@ -121,11 +123,14 @@ void rest_of_main(Token *org) {
 	while ((token = container_of(token->link.next, Token, link)) != org) {
 		assert(!cmp_Str(token->rule->name, cStr("def")));
 		Def *def = token->data.generic._0;
+		fputs("\033[33m*", stdout);
+		print2_Str(def->name);
+		puts("*\033[0m");
 		eval(def->to, &concat_str_rule);
 	}
 }
 
-	print_tokens(org);
+	// print_tokens(org);
 
 {
 	Token *token = org, *next = container_of(token->link.next, Token, link);

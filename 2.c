@@ -8,6 +8,7 @@
 #define PAIR_BIN_FLAG 1
 #define TYPE_FLAG_NODE 0b11
 #define NAME_FLAG_NODE 4
+#define ONE_TIME_FLAG_NODE 8
 
 typedef struct Node Node;
 
@@ -45,17 +46,18 @@ void destructor_Node(Handle h) {
 }
 
 void print_Node(Node *x, U4 outer_n_side) {
+	if (x->flags & ONE_TIME_FLAG_NODE) fputs("\033[31m", stdout);
 	switch (x->flags & TYPE_FLAG_NODE) {
 	case ATOM_TYPE_FLAG: {
 		if (x->flags & NAME_FLAG_NODE) putchar('%');
 		print2_Str(x->data.atom);
-		return;
+		break;
 	}
 	case IND_TYPE_FLAG: {
 		putchar('[');
 		print_Node(x->data.ind, 1);
 		putchar(']');
-		return;
+		break;
 	}
 	case APP_BIN_FLAG | BIN_TYPE_FLAG: {
 		if (outer_n_side == 2) putchar('(');
@@ -63,7 +65,7 @@ void print_Node(Node *x, U4 outer_n_side) {
 		putchar(' ');
 		print_Node(x->data.bin.right, 2);
 		if (outer_n_side == 2) putchar(')');
-		return;
+		break;
 	}
 	case PAIR_BIN_FLAG | BIN_TYPE_FLAG: {
 		if (outer_n_side != 1) putchar('(');
@@ -71,8 +73,12 @@ void print_Node(Node *x, U4 outer_n_side) {
 		putchar(',');
 		print_Node(x->data.bin.right, 3);
 		if (outer_n_side != 1) putchar(')');
-		return;
+		break;
 	}
+	}
+	if (x->flags & ONE_TIME_FLAG_NODE) {
+		fputs("\033[0m", stdout);
+		x->flags ^= ONE_TIME_FLAG_NODE;
 	}
 }
 
@@ -165,87 +171,6 @@ void find_names(Token *org) {
 		node->flags |= NAME_FLAG_NODE;
 	}
 }
-
-/*
-bool step_parse(Token *left) {
-	Token *one = container_of(left->link.next, Token, link);
-	Token *two = container_of(one->link.next, Token, link);
-	if (!cmp_Str(one->rule->name, cStr("node"))) {
-		if (!cmp_Str(two->rule->name, cStr("node"))) {
-			one->data.generic._0 = new_bin_Node(one->data.generic._0, two->data.generic._0);
-			Free(pop_DL(&two->link));
-			return true;
-		}
-
-		if (!cmp_Str(two->rule->name, cStr("char"))) {
-			if (two->data.bytes[0] == ')') {
-				Free(pop_DL(&left->link));
-				Free(pop_DL(&two->link));
-				return true;
-			}
-			if (two->data.bytes[0] == '(')	
-				return step_parse(two);
-		}
-	}
-
-	if (!cmp_Str(one->rule->name, cStr("char"))) {
-		if (one->data.bytes[0] == '(')
-			return step_parse(one);
-	}
-
-	return false;
-}
-*/
-
-/*
-void full_parse(Token *left) {
-	Token *one = container_of(left->link.next, Token, link);
-	Token *two = container_of(one->link.next, Token, link);
-	if (!cmp_Str(one->rule->name, cStr("node"))) {
-	label_0:
-		if (!cmp_Str(two->rule->name, cStr("node"))) {
-			one->data.generic._0 = new_bin_Node(one->data.generic._0, two->data.generic._0);
-			Free(pop_DL(&two->link));
-			return full_parse(left);
-		}
-
-		if (!cmp_Str(two->rule->name, cStr("char"))) {
-// (|node|char
-if (two->data.bytes[0] == ')') {
-	Free(pop_DL(&left->link));
-	Free(pop_DL(&two->link));
-	return;
-}
-if (two->data.bytes[0] == '(') {
-	full_parse(two);
-	two = container_of(one->link.next, Token, link);
-	goto label_0;
-}
-if (two->data.bytes[0] == ',') {
-	full_parse(two);
-	Token *three = container_of(two->link.next, Token, link);
-	if (!cmp_Str(three->rule->name, cStr("node"))) {
-		Node *new = new_bin_Node(one->data.generic._0, three->data.generic._0);
-		new->flags |= PAIR_BIN_FLAG;
-		one->data.generic._0 = new;
-		Free(pop_DL(&two->link));
-		Free(pop_DL(&three->link));
-		return full_parse(left);
-	}
-}
-		}
-	}
-
-	if (!cmp_Str(one->rule->name, cStr("char"))) {
-		if (one->data.bytes[0] == '(') {
-			full_parse(one);
-			return full_parse(left);
-		}
-	}
-
-	return;
-}
-*/
 
 bool is_char_token(Token *t) {
 	return !cmp_Str(t->rule->name, cStr("char"));

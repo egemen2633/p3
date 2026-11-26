@@ -1,4 +1,1 @@
-a = is_equal 2 1;
-b = is_equal 12 12;
-A = %a (x,y);
-B = %b (x,y);
+a = exec (quote x);
