@@ -112,12 +112,20 @@ void rest_of_main(Token *org) {
 	RuleEval is_equal_rule = {.match = &match_is_equal, .name = cStr("is_equal")};
 	RuleEval def_rules = {.match = &match_defs, .name = cStr("defs"), .ctx = org};
 	RuleEval exec_cancel_rule = {.match = &match_exec_cancel, .name = cStr("exec_cancel")};
+	RuleEval exec_atom_cancel_rule = {.match = &match_exec_atom_cancel, .name = cStr("exec_atom_cancel")};
 
 	from_int_rule.link.next = &is_equal_rule.link;
 	is_equal_rule.link.next = &exec_cancel_rule.link;
-	exec_cancel_rule.link.next = &def_rules.link;
-	def_rules.link.next = NULL;
-	
+	exec_cancel_rule.link.next = &exec_atom_cancel_rule.link;
+	exec_atom_cancel_rule.link.next = &def_rules.link;
+
+	RuleEval K_rule = {.match = &match_K, .name = cStr("K")};
+	RuleEval S_rule = {.match = &match_S, .name = cStr("S")};
+
+	def_rules.link.next = &K_rule.link;
+	K_rule.link.next = &S_rule.link;
+	S_rule.link.next = NULL;
+
 {
 	Token *token = org;
 	while ((token = container_of(token->link.next, Token, link)) != org) {

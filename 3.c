@@ -311,3 +311,72 @@ bool match_exec_cancel(Node *node, RuleEval *rule) {
    node->flags = IND_TYPE_FLAG;
    return true;
 }
+
+
+bool match_exec_atom_cancel(Node *node, RuleEval *rule) {
+   if (!is_app_Node(node)) return false;
+   Node *nl = node->data.bin.left;
+   Node *nr = node->data.bin.right;
+   if (!is_atom_Node(nl)) return false;
+   if (!is_atom_Node(nr)) return false;
+   if (cmp_Str(cStr("exec"), nl->data.atom)) return false;
+
+   release_Node(node->data.bin.left);
+   // release_Node(node->data.bin.right);
+   node->data.ind = node->data.bin.right;
+   node->flags = IND_TYPE_FLAG;
+   return true;
+}
+
+// K a x -> [a]
+bool match_K(Node *node, RuleEval *rule) {
+   if (!is_arity_2(node, rule->name)) return false;
+
+   Node *a = copy_Node(arg_0_arity_2(node));
+
+   release_Node(node->data.bin.left);
+   release_Node(node->data.bin.right);
+
+   node->flags = IND_TYPE_FLAG;
+   node->data.ind = a;
+   return true;
+}
+
+
+
+bool is_arity_3(Node *node, Str name) {
+   if (!is_app_Node(node)) return false;
+   return is_arity_2(node->data.bin.left, name);
+}
+
+Node *arg_0_arity_3(Node *node) {
+   return arg_0_arity_2(node->data.bin.left);
+}
+
+Node *arg_1_arity_3(Node *node) {
+   return node->data.bin.left->data.bin.right;
+}
+
+Node *arg_2_arity_3(Node *node) {
+   return node->data.bin.right;
+}
+
+
+// S a b x -> (a x) (b x)
+bool match_S(Node *node, RuleEval *rule) {
+   if (!is_arity_3(node, rule->name)) return false;
+
+   Node *a = copy_Node(arg_0_arity_3(node));
+   Node *b = copy_Node(arg_1_arity_3(node));
+   Node *x = arg_2_arity_3(node);
+
+   Node *ax = new_bin_Node(a, copy_Node(x));
+   Node *bx = new_bin_Node(b, x);
+
+   release_Node(node->data.bin.left);
+
+   node->flags = BIN_TYPE_FLAG | APP_BIN_FLAG;
+   node->data.bin.left = ax;
+   node->data.bin.right = bx;
+   return true;
+}

@@ -1,1 +1,2 @@
-a = exec (quote x);
+f = S (S (K mul4) I) I;
+a = from_int (%f (~$ 5));
