@@ -1,30 +1,6 @@
 #include "0h.c"
 #include "1.c"
 #include "3.c"
-#include <assert.h>
-#include <stdio.h>
-#include <unistd.h>
-
-U4 to_int(Str x) {
-   U4 out = 0;
-   U4 i = x.length;
-   while (i--)
-      out = out << 4 | nibble_to_int(x.start[i]);
-   return out;
-}
-
-Str from_int(U4 x) {
-	U4 length = x ? 8 - (__builtin_clz(x) >> 2) : 1;
-	U1 *out = Malloc(length);
-	U1 *ptr = out + length;
-	I4 i = -length;
-	while (i) {
-		ptr[i] = nibble_upper(x & 0xF);
-		x >>= 4;
-		i++;
-	}
-	return (Str){out, length};
-}
 
 U4 length_Str(Str x) { return x.length; }
 
@@ -53,7 +29,7 @@ void print_tokens(Token *org) {
 
 void eval(Node *node, RuleEval *rule) {
 	do {
-		print_Node(node, 1);
+		print_Node(node->data.ind, 1);
 		putchar('\n');
 	} while (step_eval(node, rule));
 	putchar('\n');
@@ -63,6 +39,8 @@ void rest_of_main(Token *org) {
 	RuleEval concat_str_rule    = {.match = &match_concat_str, .name = cStr("concat_str")};
 	RuleEval substr_rule        = {.match = &match_substr,     .name = cStr("substr")};
 	RuleEval I_rule             = {.match = &match_I,          .name = cStr("I")};
+	RuleEval K_rule 				 = {.match = &match_K,			  .name = cStr("K")};
+	RuleEval S_rule 				 = {.match = &match_S, 			  .name = cStr("S")};
 	RuleEval uni_ind_rule       = {.match = &match_uni_ind,    .name = cStr("uni_ind")};
 	RuleEval left_bin_ind_rule  = {.match = &match_bin_ind,    .name = cStr("left_bin_ind"),  .ctx = (void *)0};
 	RuleEval right_bin_ind_rule = {.match = &match_bin_ind,    .name = cStr("right_bin_ind"), .ctx = (void *)1};
@@ -83,59 +61,39 @@ void rest_of_main(Token *org) {
 	RuleEval xor4_rule          = {.match = &match_bin4,       .name = cStr("xor4"),          .ctx = &xor4};
 	RuleEval not4_rule          = {.match = &match_uni4,       .name = cStr("not4"),          .ctx = &not4};
 	RuleEval from_int_rule      = {.match = &match_int_to_str, .name = cStr("from_int"),      .ctx = &from_int};
+	RuleEval is_equal_rule 		 = {.match = &match_is_equal,   .name = cStr("is_equal")};
+	// RuleEval def_rules 		 = {.match = &match_defs,		  .name = cStr("defs"),				.ctx = org};
 
+	// RuleEval exec_cancel_rule = {.match = &match_exec_cancel, .name = cStr("exec_cancel")};
+	// RuleEval exec_atom_cancel_rule = {.match = &match_exec_atom_cancel, .name = cStr("exec_atom_cancel")};
+	// RuleEval exec_rule = {.match = &match_exec, .name = cStr("exec")};
 
-	concat_str_rule.link.next = &substr_rule.link;
-	substr_rule.link.next = &I_rule.link;
-	I_rule.link.next = &left_bin_ind_rule.link;
-	// uni_ind_rule.link.next = &left_bin_ind_rule.link;
-	left_bin_ind_rule.link.next = &right_bin_ind_rule.link;
-	right_bin_ind_rule.link.next = &pair_rule.link;
-	pair_rule.link.next = &left_pair_rule.link;
-	left_pair_rule.link.next = &right_pair_rule.link;
-	right_pair_rule.link.next = &length_rule.link;
-	length_rule.link.next = &to_int_rule.link;
-	to_int_rule.link.next = &add4_rule.link;
-
-	add4_rule.link.next = &sub4_rule.link;
-	sub4_rule.link.next = &mul4_rule.link;
-	mul4_rule.link.next = &neg4_rule.link;
-	neg4_rule.link.next = &sul4_rule.link;
-	sul4_rule.link.next = &sdl4_rule.link;
-	sdl4_rule.link.next = &sda4_rule.link;
-	sda4_rule.link.next = &and4_rule.link;
-	and4_rule.link.next = &or4_rule.link;
-	or4_rule.link.next = &xor4_rule.link;
-	xor4_rule.link.next = &not4_rule.link;
-	not4_rule.link.next = &from_int_rule.link;
-
-	RuleEval is_equal_rule = {.match = &match_is_equal, .name = cStr("is_equal")};
-	RuleEval def_rules = {.match = &match_defs, .name = cStr("defs"), .ctx = org};
-	RuleEval exec_cancel_rule = {.match = &match_exec_cancel, .name = cStr("exec_cancel")};
-	RuleEval exec_atom_cancel_rule = {.match = &match_exec_atom_cancel, .name = cStr("exec_atom_cancel")};
-
-	from_int_rule.link.next = &is_equal_rule.link;
-	is_equal_rule.link.next = &exec_cancel_rule.link;
-	exec_cancel_rule.link.next = &exec_atom_cancel_rule.link;
-	exec_atom_cancel_rule.link.next = &def_rules.link;
-
-	RuleEval K_rule = {.match = &match_K, .name = cStr("K")};
-	RuleEval S_rule = {.match = &match_S, .name = cStr("S")};
-
-	def_rules.link.next = &K_rule.link;
-	K_rule.link.next = &S_rule.link;
-	S_rule.link.next = NULL;
 
 {
-	Token *token = org;
-	while ((token = container_of(token->link.next, Token, link)) != org) {
-		assert(!cmp_Str(token->rule->name, cStr("def")));
-		Def *def = token->data.generic._0;
-		fputs("\033[33m*", stdout);
-		print2_Str(def->name);
-		puts("*\033[0m");
-		eval(def->to, &concat_str_rule);
-	}
+#define ADD(r) insert_after_SL(&concat_str_rule.link, &(r).link)
+
+	// ADD(def_rules);
+	ADD(right_bin_ind_rule); ADD(left_bin_ind_rule);
+	ADD(S_rule); ADD(K_rule); ADD(I_rule);
+	ADD(right_pair_rule); ADD(left_pair_rule); ADD(pair_rule);
+	ADD(is_equal_rule);
+	ADD(not4_rule); ADD(xor4_rule); ADD(or4_rule); ADD(and4_rule);
+	ADD(sda4_rule); ADD(sdl4_rule); ADD(sul4_rule);
+	ADD(neg4_rule); ADD(mul4_rule); ADD(sub4_rule); ADD(add4_rule);
+	ADD(from_int_rule); ADD(to_int_rule);
+	ADD(length_rule); ADD(substr_rule);
+
+#undef ADD
+}
+
+{
+	Token *token = container_of(org->link.next, Token, link);
+	assert(!cmp_Str(token->rule->name, cStr("def")));
+	Def *def = token->data.generic._0;
+	fputs("\033[33m*", stdout);
+	print2_Str(def->name);
+	puts("*\033[0m");
+	eval(def->to, &concat_str_rule);
 }
 
 	// print_tokens(org);
@@ -156,7 +114,8 @@ void rest_of_main(Token *org) {
 }
 
 // clang test.c -o test 0.c -D_GNU_SOURCE
-int main() {
+int main(int argc, char **argv) {
+	assert(argc == 2);
 	RuleLexer str_rule = {
 		.match = &match_str,
 		.print = &print_str_token,
@@ -187,7 +146,7 @@ int main() {
 	org.link.next = &org.link;
 	org.link.prev = &org.link;
 
-	FILE *fp = fopen("test.txt", "rb");
+	FILE *fp = fopen(argv[1], "rb");
 
 	RuleLexer *rule = &space_rule;
 	pull: {
@@ -207,13 +166,13 @@ int main() {
 
 	// print_tokens(&org);
 
-	convert_atoms(&org);
-	find_names(&org);
-	// print_tokens(&org);
-	// putchar('\n');
+	// find_names(&org);
 
+	pre_defs(&org);
+	convert_atoms(&org);
+	// print_tokens(&org);
 	full_process(&org);
-	create_defs(&org);
+	printf("Free/Malloc = %u/%u\n", total_Free, total_Malloc);
 	print_tokens(&org);
 
 	rest_of_main(&org);

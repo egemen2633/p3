@@ -1,5 +1,40 @@
 #include "0h.c"
+#include <assert.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+
+U4 to_int(Str x) {
+   U4 out = 0;
+   U4 i = x.length;
+   while (i--)
+      out = out << 4 | nibble_to_int(x.start[i]);
+   return out;
+}
+
+U4 length_from_int(U4 x) {
+	return x ? 8 - (__builtin_clz(x) >> 2) : 1;
+}
+
+U4 _from_int(U4 x, U4 length, U1 *out) {
+	U1 *ptr = out + length;
+	I4 i = -length;
+	while (i) {
+		ptr[i] = nibble_upper(x & 0xF);
+		x >>= 4;
+		i++;
+	}
+	return length;
+}
+
+Str from_int(U4 x) {
+	U4 length = length_from_int(x);
+	U1 *out = Malloc(length);
+	_from_int(x, length, out);
+	return (Str){out, length};
+}
+
 
 #define BIN_TYPE_FLAG 0b10
 #define ATOM_TYPE_FLAG 0
@@ -7,7 +42,7 @@
 #define APP_BIN_FLAG 0
 #define PAIR_BIN_FLAG 1
 #define TYPE_FLAG_NODE 0b11
-#define NAME_FLAG_NODE 4
+#define NAMED_FLAG_NODE 4
 #define ONE_TIME_FLAG_NODE 8
 
 typedef struct Node Node;
@@ -49,11 +84,14 @@ void print_Node(Node *x, U4 outer_n_side) {
 	if (x->flags & ONE_TIME_FLAG_NODE) fputs("\033[31m", stdout);
 	switch (x->flags & TYPE_FLAG_NODE) {
 	case ATOM_TYPE_FLAG: {
-		if (x->flags & NAME_FLAG_NODE) putchar('%');
 		print2_Str(x->data.atom);
 		break;
 	}
 	case IND_TYPE_FLAG: {
+		if (x->flags & NAMED_FLAG_NODE) {
+			fputs("...", stdout);
+			break;
+		}
 		putchar('[');
 		print_Node(x->data.ind, 1);
 		putchar(']');
@@ -118,13 +156,17 @@ typedef struct Def Def;
 struct Def {
 	Str name;
 	Node *to;
+	Def *next;
 };
 
 void print_Token_Def(Token *x) {
 	Def *def = x->data.generic._0;
 	print2_Str(def->name);
 	fputs(" = ", stdout);
-	print_Node(def->to, 1);
+	if (def->to->data.ind)
+		print_Node(def->to->data.ind, 1);
+	else
+	 	fputs("NULL", stdout);
 }
 
 RuleLexer def_rule = {
@@ -134,14 +176,16 @@ RuleLexer def_rule = {
 
 void convert_atoms(Token *org) {
 	Token *token = org;
+	Token *token_first_def = container_of(token->link.next, Token, link);
+	assert(!cmp_Str(token_first_def->rule->name, cStr("def")));
+	Def *first_def = token_first_def->data.generic._0;
 out:
 	token = container_of(token->link.next, Token, link);
 	if (token == org) return;
 	// print_Token_debug(token);
 	// putchar('\n');
 
-	if (cmp_Str(token->rule->name, cStr("char"))) goto out;
-	if (token->data.bytes[0] == '=') goto in;
+	if (!cmp_Str(token->rule->name, cStr("def"))) goto in;
 	goto out;
 in:
 	token = container_of(token->link.next, Token, link);
@@ -157,10 +201,22 @@ in:
 	if (cmp_Str(token->rule->name, cStr("str"))) goto in;
 
 	token->rule = &node_rule;
+{
+	Def *def = first_def;
+	do {
+		if (!cmp_Str(def->name, token->data.str)) {
+			Free(token->data.str.start);
+			token->data.generic._0 = copy_Node(def->to);
+			goto in;
+		}
+		def = def->next;
+	} while (def);
+}
 	token->data.generic._0 = new_atom_Node(token->data.str);
 	goto in;
 }
 
+/*
 void find_names(Token *org) {
 	Token *token = org;
 	while ((token = container_of(token->link.next, Token, link)) != org) {
@@ -171,6 +227,7 @@ void find_names(Token *org) {
 		node->flags |= NAME_FLAG_NODE;
 	}
 }
+*/
 
 bool is_char_token(Token *t) {
 	return !cmp_Str(t->rule->name, cStr("char"));
@@ -282,12 +339,17 @@ label_1: {
 void full_process(Token *org) {
 	Token *x = org;
 	while ((x = container_of(x->link.next, Token, link)) != org) {
-		if (!(is_char_token(x) && x->data.bytes[0] == '='))
-			continue;
+		if (cmp_Str(x->rule->name, cStr("def"))) continue;
 		full_parse(x);
+		Def *def = x->data.generic._0;
+		Token *node_token = container_of(pop_DL(x->link.next), Token, link);
+		def->to->data.ind = node_token->data.generic._0;
+		Free(node_token);
+		Free(pop_DL(x->link.next)); // ;
 	}
 }
 
+/*
 void create_defs(Token *org) {
 	Token *x = org;
 	while ((x = container_of(x->link.next, Token, link)) != org) {
@@ -302,4 +364,27 @@ void create_defs(Token *org) {
 		Free(pop_DL(x->link.next));
 		Free(pop_DL(x->link.next));
 	}
+}
+*/
+
+void pre_defs(Token *org) {
+	Token *x = org;
+	Def *prev = NULL;
+	while ((x = container_of(x->link.next, Token, link)) != org) {
+		if (!(is_char_token(x) && x->data.bytes[0] == '='))
+			continue;
+		Def *def = Malloc(sizeof(Def));
+		if (prev) prev->next = def;
+		prev = def;
+		def->name = container_of(x->link.prev, Token, link)->data.str;
+		Node *ind = Malloc(sizeof(Node));
+		ind->flags = IND_TYPE_FLAG | NAMED_FLAG_NODE;
+		ind->refc = 1;
+		ind->data.ind = NULL;
+		def->to = ind;
+		x->data.generic._0 = def;
+		x->rule = &def_rule;
+		Free(pop_DL(x->link.prev));
+	}
+	prev->next = NULL;
 }
