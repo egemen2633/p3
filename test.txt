@@ -1,12 +1,2 @@
-y = from_int (fact (~$ C));
-
-dec = add4 (~- (~$ 1));
-is_zero = is_equal (~$ 0);
-fact = S
-   (S (K (is_zero)) I)
-   (S (S (K pair) (K (~$ 1))) (S
-      (S (K mul4) I)
-      (S
-         (K (fact))
-         (S (K (dec)) I)
-)));
+y = a;
+x = x x;

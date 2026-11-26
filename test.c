@@ -1,6 +1,7 @@
 #include "0h.c"
 #include "1.c"
 #include "3.c"
+#include <unistd.h>
 
 U4 length_Str(Str x) { return x.length; }
 
@@ -104,6 +105,8 @@ void rest_of_main(Token *org) {
 		assert(!cmp_Str(token->rule->name, cStr("def")));
 		Def *def = token->data.generic._0;
 		Free(def->name.start);
+		release_Node(def->to->data.ind);
+		def->to->data.ind = NULL;
 		release_Node(def->to);
 		Free(def);
 		next = container_of(token->link.next, Token, link);
@@ -172,7 +175,6 @@ int main(int argc, char **argv) {
 	convert_atoms(&org);
 	// print_tokens(&org);
 	full_process(&org);
-	printf("Free/Malloc = %u/%u\n", total_Free, total_Malloc);
 	print_tokens(&org);
 
 	rest_of_main(&org);

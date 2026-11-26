@@ -72,9 +72,9 @@ void destructor_Node(Handle h) {
 	if (x->flags & BIN_TYPE_FLAG) {
 		release_Node(x->data.bin.left);
 		release_Node(x->data.bin.right);
-	} else if (x->flags & IND_TYPE_FLAG)
-		release_Node(x->data.ind);
-	else
+	} else if (x->flags & IND_TYPE_FLAG) {
+		if (x->data.ind) release_Node(x->data.ind);
+	} else
 		Free(x->data.atom.start);
 
 	Free(x);
