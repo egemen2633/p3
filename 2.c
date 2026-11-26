@@ -56,7 +56,10 @@ struct Node {
 			Node *left;
 			Node *right;
 		} bin;
-		Node *ind;
+		struct {
+			Node *ind;
+			Str *named;
+		};
 	} data;
 };
 
@@ -89,7 +92,7 @@ void print_Node(Node *x, U4 outer_n_side) {
 	}
 	case IND_TYPE_FLAG: {
 		if (x->flags & NAMED_FLAG_NODE) {
-			fputs("...", stdout);
+			print2_Str(*x->data.named);
 			break;
 		}
 		putchar('[');
@@ -381,6 +384,7 @@ void pre_defs(Token *org) {
 		ind->flags = IND_TYPE_FLAG | NAMED_FLAG_NODE;
 		ind->refc = 1;
 		ind->data.ind = NULL;
+		ind->data.named = &def->name;
 		def->to = ind;
 		x->data.generic._0 = def;
 		x->rule = &def_rule;

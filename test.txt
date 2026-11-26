@@ -1,2 +1,2 @@
-y = a;
-x = x x;
+_ = left (right (right ones));
+ones = 1,ones;
